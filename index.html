@@ -12,6 +12,10 @@
       --btn-hover: #00bfa5;
       --border-radius: 8px;
       --transition-speed: 0.2s;
+      --error-color: #CF6679;
+      --success-color: #4CAF50;
+      --warning-color: #FFC107;
+      --info-color: #2196F3;
     }
     body {
       margin: 0;
@@ -124,6 +128,100 @@
       color: var(--accent-color);
       text-decoration: underline;
     }
+    
+    /* New styles for downloads section */
+    .download-item {
+      background: #2A2A2A;
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    
+    .download-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .download-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+    
+    .download-status {
+      font-size: 0.9rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+    
+    .status-initializing { background: var(--info-color); color: white; }
+    .status-loading { background: var(--info-color); color: white; }
+    .status-downloading { background: var(--warning-color); color: black; }
+    .status-completed { background: var(--success-color); color: white; }
+    .status-error, .status-failed { background: var(--error-color); color: white; }
+    
+    .progress-container {
+      height: 8px;
+      background: #444;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: var(--accent-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .download-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #AAA;
+    }
+    
+    .downloads-section {
+      margin-top: 2rem;
+    }
+    
+    .download-error {
+      color: var(--error-color);
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .download-path {
+      font-family: monospace;
+      background: #222;
+      padding: 0.3rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+      overflow-x: auto;
+      word-break: break-all;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .time-remaining {
+      font-size: 0.85rem;
+      color: #BBB;
+      margin-top: 0.3rem;
+    }
+    
+    .cancel-btn {
+      background: #555;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -171,15 +269,185 @@
     </form>
     <div id="status"></div>
   </div>
+  
+  <div class="section downloads-section">
+    <h2>Active Downloads</h2>
+    <div id="activeDownloads"></div>
+  </div>
 
 <script>
   const backendUrl = 'https://backend.hexadownloader.co.za';
+  
+  // WebSocket URL with protocol based on current page
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsBaseUrl = backendUrl.replace(/^https?:/, wsProtocol);
+  
+  // Track active WebSocket connections
+  const activeConnections = {};
+  // Track active downloads
+  const activeDownloads = {};
 
   let allResults = [];
   let visibleIndex = 0;
   const pageSize = 20;
   const searchResultsDiv = document.getElementById('searchResults');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const activeDownloadsContainer = document.getElementById('activeDownloads');
+
+  // Format file size into human-readable format
+  function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+  }
+
+  // Format time in seconds to MM:SS or HH:MM:SS
+  function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hrs > 0) {
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // Estimate time remaining based on progress
+  function estimateTimeRemaining(progress, elapsedSeconds) {
+    if (!progress || progress <= 0 || !elapsedSeconds) return null;
+    const totalSeconds = (elapsedSeconds / progress) * 100;
+    const remainingSeconds = totalSeconds - elapsedSeconds;
+    return remainingSeconds > 0 ? formatTime(remainingSeconds) : '00:00';
+  }
+
+  // Connect to WebSocket for real-time updates
+  function connectWebSocket(downloadId) {
+    if (activeConnections[downloadId]) {
+      console.log(`WebSocket for ${downloadId} already exists`);
+      return;
+    }
+    
+    const ws = new WebSocket(`${wsBaseUrl}/ws?id=${downloadId}`);
+    
+    ws.onopen = () => {
+      console.log(`WebSocket connected for ${downloadId}`);
+      activeConnections[downloadId] = ws;
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      updateDownloadUI(data);
+    };
+    
+    ws.onclose = () => {
+      console.log(`WebSocket closed for ${downloadId}`);
+      delete activeConnections[downloadId];
+    };
+    
+    ws.onerror = (error) => {
+      console.error(`WebSocket error for ${downloadId}:`, error);
+    };
+    
+    return ws;
+  }
+
+  // Create or update download UI element
+  function updateDownloadUI(data) {
+    if (!data || !data.id) return;
+    
+    // Update our tracking object
+    const isNew = !activeDownloads[data.id];
+    const downloadStartTime = activeDownloads[data.id]?.startTime || Date.now();
+    activeDownloads[data.id] = {
+      ...data,
+      startTime: downloadStartTime
+    };
+    
+    // Calculate elapsed time
+    const elapsedSeconds = (Date.now() - downloadStartTime) / 1000;
+    
+    // Find or create the download element
+    let downloadEl = document.getElementById(`download-${data.id}`);
+    
+    if (!downloadEl) {
+      downloadEl = document.createElement('div');
+      downloadEl.id = `download-${data.id}`;
+      downloadEl.className = 'download-item';
+      activeDownloadsContainer.appendChild(downloadEl);
+    }
+    
+    // Format the title based on media type
+    const mediaInfo = data.mediaInfo || {};
+    let title = mediaInfo.title || 'Unknown';
+    
+    if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
+      title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
+    }
+    
+    // Generate extra details based on download type and status
+    let extraDetails = '';
+    let timeRemaining = '';
+    
+    if (data.status === 'downloading') {
+      if (data.totalSize && data.downloadedSize) {
+        extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
+      }
+      
+      if (data.progress > 0) {
+        const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
+        if (remaining) {
+          timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
+        }
+      }
+    } else if (data.status === 'completed') {
+      if (data.filePath) {
+        extraDetails = `<div class="download-path">${data.filePath}</div>`;
+      }
+    } else if (data.status === 'error' || data.status === 'failed') {
+      if (data.error) {
+        extraDetails = `<div class="download-error">${data.error}</div>`;
+      }
+      
+      if (data.manualLink) {
+        extraDetails += `<div class="download-path">
+          Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
+        </div>`;
+      }
+    }
+    
+    // Update the content
+    downloadEl.innerHTML = `
+      <div class="download-header">
+        <h3 class="download-title">${title}</h3>
+        <span class="download-status status-${data.status}">${data.status.toUpperCase()}</span>
+      </div>
+      <div class="progress-container">
+        <div class="progress-bar" style="width: ${data.progress || 0}%"></div>
+      </div>
+      <div class="download-details">
+        <span>${data.type ? `Format: ${data.type.toUpperCase()}` : ''}</span>
+        <span>${data.progress ? `${data.progress}%` : ''}</span>
+      </div>
+      ${timeRemaining}
+      ${extraDetails}
+    `;
+    
+    // Clean up completed or failed downloads after 1 hour
+    if (data.status === 'completed' || data.status === 'error' || data.status === 'failed') {
+      setTimeout(() => {
+        const downloadEl = document.getElementById(`download-${data.id}`);
+        if (downloadEl) {
+          downloadEl.remove();
+          delete activeDownloads[data.id];
+        }
+      }, 3600000); // 1 hour
+    }
+  }
 
   document.getElementById('btnSearch').addEventListener('click', async () => {
     searchResultsDiv.innerHTML = '';
@@ -202,17 +470,32 @@
       allResults = firstData.results || [];
       let totalPages = firstData.total_pages || 1;
 
-      const pagePromises = [];
-      for (let p = 2; p <= totalPages; p++) {
-        const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
-        pagePromises.push(fetch(url, { credentials: 'include', mode: 'cors' }).then(r => r.json()));
-      }
-      const pagesData = await Promise.all(pagePromises);
-      pagesData.forEach(data => {
-        if (data.results) allResults = allResults.concat(data.results);
-      });
-
+      // Get first page before fetching others
       renderResultsChunk();
+      
+      // If more than one page, fetch additional pages asynchronously
+      if (totalPages > 1) {
+        const pagePromises = [];
+        for (let p = 2; p <= Math.min(totalPages, 5); p++) { // Limit to 5 pages max
+          const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
+          pagePromises.push(fetch(url, { credentials: 'include', mode: 'cors' }).then(r => r.json()));
+        }
+        
+        try {
+          const pagesData = await Promise.all(pagePromises);
+          pagesData.forEach(data => {
+            if (data.results) allResults = allResults.concat(data.results);
+          });
+          
+          // Update UI with all results
+          searchResultsDiv.innerHTML = '';
+          visibleIndex = 0;
+          renderResultsChunk();
+        } catch (pageErr) {
+          console.error('Error fetching additional pages:', pageErr);
+        }
+      }
+      
       if (allResults.length > pageSize) loadMoreBtn.style.display = 'inline-block';
     } catch (err) {
       console.error(err);
@@ -343,10 +626,71 @@
         credentials: 'include',
         mode: 'cors'
       });
+      
+      if (!resp.ok) {
+        throw new Error(`Server returned ${resp.status}: ${resp.statusText}`);
+      }
+      
       const data = await resp.json();
-      statusEl.textContent = JSON.stringify(data, null, 2);
+      statusEl.textContent = 'Download has been initiated!';
+      
+      // Connect to WebSocket for real-time updates
+      if (data.downloadId) {
+        connectWebSocket(data.downloadId);
+        
+        // Create initial UI
+        updateDownloadUI({
+          id: data.downloadId,
+          status: 'initializing',
+          progress: 0,
+          mediaInfo: {
+            type: type.toLowerCase(),
+            title,
+            season: payload.season,
+            episode: payload.episode
+          }
+        });
+        
+        // Scroll to active downloads section
+        document.querySelector('.downloads-section').scrollIntoView({ behavior: 'smooth' });
+      }
     } catch (err) {
       statusEl.textContent = 'Error: ' + err.toString();
+    }
+  });
+  
+  // Check for any existing downloads on page load
+  async function checkExistingDownloads() {
+    try {
+      const resp = await fetch(`${backendUrl}/status`, {
+        credentials: 'include',
+        mode: 'cors'
+      });
+      
+      if (resp.ok) {
+        const downloads = await resp.json();
+        
+        if (downloads && downloads.length > 0) {
+          downloads.forEach(download => {
+            if (download.id) {
+              connectWebSocket(download.id);
+              updateDownloadUI(download);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error checking existing downloads:', err);
+    }
+  }
+  
+  // Initial check for existing downloads
+  checkExistingDownloads();
+  
+  // Search input Enter key handling
+  document.getElementById('searchQuery').addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('btnSearch').click();
     }
   });
 </script>
