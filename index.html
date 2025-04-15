@@ -353,31 +353,30 @@
     }
     
     // Format the title based on media type
-    const mediaInfo = data.mediaInfo || {};
-    let title = mediaInfo.title || 'Unknown';
-    if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
-      title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
+   const mediaInfo = data.mediaInfo || {};
+let title = mediaInfo.title || 'Unknown';
+if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
+  title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
+}
+
+let extraDetails = '';
+let timeRemaining = '';
+
+if (data.status === 'downloading') {
+  if (data.totalSize && data.downloadedSize) {
+    extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
+  }
+  if (data.progress > 0) {
+    const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
+    if (remaining) {
+      timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
     }
-    
-    // Generate extra details based on download type and status
-    let extraDetails = '';
-    let timeRemaining = '';
-    
-    if (data.status === 'downloading') {
-      if (data.totalSize && data.downloadedSize) {
-        extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
-      }
-      if (data.progress > 0) {
-        const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
-        if (remaining) {
-          timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
-        }
-      }
-    } else if (data.status === 'completed') {
-      if (data.filePath) {
-        extraDetails = `<div class="download-path">${data.filePath}</div>`;
-      
-     } else if (data.status === 'stream_only') {
+  }
+} else if (data.status === 'completed') {
+  if (data.filePath) {
+    extraDetails = `<div class="download-path">${data.filePath}</div>`;
+  }
+} else if (data.status === 'stream_only') {
   if (data.embedUrl) {
     extraDetails = `
       <div class="download-error">Download failed, but streaming is available.</div>
@@ -397,16 +396,17 @@
         </a>
       </div>`;
   }
-    } else if (data.status === 'error' || data.status === 'failed') {
-      if (data.error) {
-        extraDetails = `<div class="download-error">${data.error}</div>`;
-      }
-      if (data.manualLink) {
-        extraDetails += `<div class="download-path">
-          Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
-        </div>`;
-      }
-    }
+} else if (data.status === 'error' || data.status === 'failed') {
+  if (data.error) {
+    extraDetails = `<div class="download-error">${data.error}</div>`;
+  }
+  if (data.manualLink) {
+    extraDetails += `<div class="download-path">
+      Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
+    </div>`;
+  }
+}
+
     
     downloadEl.innerHTML = `
       <div class="download-header">
