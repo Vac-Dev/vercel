@@ -372,19 +372,26 @@
         timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
       }
     }
-  } else if (data.status === 'completed') {
+  }   } else if (data.status === 'completed') {
     if (data.filePath) {
       extraDetails = `<div class="download-path">${data.filePath}</div>`;
     }
-  }  else if (data.status === 'stream_only' && data.manualLink) {
-  extraDetails = `
-    <div class="download-error">Download not available. You can stream it on FlickyStream:</div>
-    <div class="download-path">
-      <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color); font-weight: bold;">
-        Watch Now on FlickyStream
-      </a>
-    </div>`;
-}else if (data.status === 'error' || data.status === 'failed') {
+
+  } else if (data.status === 'searching_hexa' || data.status === 'hexa_not_found') {
+    if (data.message) {
+      extraDetails = `<div class="download-error">${data.message}</div>`;
+    }
+
+  } else if (data.status === 'stream_only' && data.manualLink) {
+    extraDetails = `
+      <div class="download-error">Download not available. You can stream it on FlickyStream:</div>
+      <div class="download-path">
+        <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color); font-weight: bold;">
+          Watch Now on FlickyStream
+        </a>
+      </div>`;
+
+  } else if (data.status === 'error' || data.status === 'failed') {
     if (data.error) {
       extraDetails = `<div class="download-error">${data.error}</div>`;
     }
@@ -393,6 +400,7 @@
         Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
       </div>`;
     }
+
   }
 
   downloadEl.innerHTML = `
@@ -419,7 +427,7 @@
         downloadEl.remove();
         delete activeDownloads[data.id];
       }
-    }, 6000); // 1 hour
+    }, 120000); // 1 hour
   }
 }
 
