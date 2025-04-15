@@ -333,97 +333,102 @@
 
   // Create or update download UI element
   function updateDownloadUI(data) {
-    if (!data || !data.id) return;
-    
-    // Update our tracking object
-    const isNew = !activeDownloads[data.id];
-    const downloadStartTime = activeDownloads[data.id]?.startTime || Date.now();
-    activeDownloads[data.id] = { ...data, startTime: downloadStartTime };
-    
-    // Calculate elapsed time
-    const elapsedSeconds = (Date.now() - downloadStartTime) / 1000;
-    
-    // Find or create the download element
-    let downloadEl = document.getElementById(`download-${data.id}`);
-    if (!downloadEl) {
-      downloadEl = document.createElement('div');
-      downloadEl.id = `download-${data.id}`;
-      downloadEl.className = 'download-item';
-      activeDownloadsContainer.appendChild(downloadEl);
+  if (!data || !data.id) return;
+
+  // Update our tracking object
+  const isNew = !activeDownloads[data.id];
+  const downloadStartTime = activeDownloads[data.id]?.startTime || Date.now();
+  activeDownloads[data.id] = { ...data, startTime: downloadStartTime };
+
+  // Calculate elapsed time
+  const elapsedSeconds = (Date.now() - downloadStartTime) / 1000;
+
+  // Find or create the download element
+  let downloadEl = document.getElementById(`download-${data.id}`);
+  if (!downloadEl) {
+    downloadEl = document.createElement('div');
+    downloadEl.id = `download-${data.id}`;
+    downloadEl.className = 'download-item';
+    activeDownloadsContainer.appendChild(downloadEl);
+  }
+
+  // Format the title based on media type
+  const mediaInfo = data.mediaInfo || {};
+  let title = mediaInfo.title || 'Unknown';
+  if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
+    title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
+  }
+
+  let extraDetails = '';
+  let timeRemaining = '';
+
+  if (data.status === 'downloading') {
+    if (data.totalSize && data.downloadedSize) {
+      extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
     }
-    
-    // Format the title based on media type
-   const mediaInfo = data.mediaInfo || {};
-let title = mediaInfo.title || 'Unknown';
-if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
-  title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
+    if (data.progress > 0) {
+      const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
+      if (remaining) {
+        timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
+      }
+    }
+  } else if (data.status === 'completed') {
+    if (data.filePath) {
+      extraDetails = `<div class="download-path">${data.filePath}</div>`;
+    }
+  } else if (data.status === 'stream_only' && data.manualLink) {
+    extraDetails = `
+      <div class="download-error">Download not available. You can stream it on Hexa Watch:</div>
+      <div class="download-path">
+        <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color); font-weight: bold;">
+          Watch Now on Hexa Watch
+        </a>
+      </div>`;
+  } else if (data.status === 'error' || data.status === 'failed') {
+    if (data.error) {
+      extraDetails = `<div class="download-error">${data.error}</div>`;
+    }
+    if (data.manualLink) {
+      extraDetails += `<div class="download-path">
+        Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
+      </div>`;
+    }
+  }
+
+  downloadEl.innerHTML = `
+    <div class="download-header">
+      <h3 class="download-title">${title}</h3>
+      <span class="download-status status-${data.status}">${data.status.toUpperCase()}</span>
+    </div>
+    <div class="progress-container">
+      <div class="progress-bar" style="width: ${data.progress || 0}%"></div>
+    </div>
+    <div class="download-details">
+      <span>${data.type ? `Format: ${data.type.toUpperCase()}` : ''}</span>
+      <span>${data.progress ? `${data.progress}%` : ''}</span>
+    </div>
+    ${timeRemaining}
+    ${extraDetails}
+  `;
+
+  // Clean up completed or failed downloads after 1 hour
+  if (data.status === 'completed' || data.status === 'error' || data.status === 'failed') {
+    setTimeout(() => {
+      const downloadEl = document.getElementById(`download-${data.id}`);
+      if (downloadEl) {
+        downloadEl.remove();
+        delete activeDownloads[data.id];
+      }
+    }, 6000); // 1 hour
+  }
 }
 
-let extraDetails = '';
-let timeRemaining = '';
-
-if (data.status === 'downloading') {
-  if (data.totalSize && data.downloadedSize) {
-    extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
-  }
-  if (data.progress > 0) {
-    const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
-    if (remaining) {
-      timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
-    }
-  }
-} else if (data.status === 'completed') {
-  if (data.filePath) {
-    extraDetails = `<div class="download-path">${data.filePath}</div>`;
-  }
-} else if (data.status === 'stream_only' || data.streamUrl) {
-  extraDetails = `
-    <div class="download-error">Download failed, but streaming is available.</div>
-    <div class="download-path">
-      <a href="${backendUrl}/stream/${data.id}" target="_blank" style="color: var(--accent-color);">
-        Watch Now
-      </a>
-    </div>`;
-} else if (data.status === 'error' || data.status === 'failed') {
-  if (data.error) {
-    extraDetails = `<div class="download-error">${data.error}</div>`;
-  }
-  if (data.manualLink) {
-    extraDetails += `<div class="download-path">
-      Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
-    </div>`;
-  }
-}
 
 
     
-    downloadEl.innerHTML = `
-      <div class="download-header">
-        <h3 class="download-title">${title}</h3>
-        <span class="download-status status-${data.status}">${data.status.toUpperCase()}</span>
-      </div>
-      <div class="progress-container">
-        <div class="progress-bar" style="width: ${data.progress || 0}%"></div>
-      </div>
-      <div class="download-details">
-        <span>${data.type ? `Format: ${data.type.toUpperCase()}` : ''}</span>
-        <span>${data.progress ? `${data.progress}%` : ''}</span>
-      </div>
-      ${timeRemaining}
-      ${extraDetails}
-    `;
     
-    // Clean up completed or failed downloads after 1 hour
-    if (data.status === 'completed' || data.status === 'error' || data.status === 'failed') {
-      setTimeout(() => {
-        const downloadEl = document.getElementById(`download-${data.id}`);
-        if (downloadEl) {
-          downloadEl.remove();
-          delete activeDownloads[data.id];
-        }
-      }, 3600000); // 1 hour
-    }
-  }
+    
+    
 
   document.getElementById('btnSearch').addEventListener('click', async () => {
     searchResultsDiv.innerHTML = '';
