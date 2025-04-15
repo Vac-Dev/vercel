@@ -376,25 +376,15 @@ if (data.status === 'downloading') {
   if (data.filePath) {
     extraDetails = `<div class="download-path">${data.filePath}</div>`;
   }
-}  else if (data.status === 'stream_only') {
-  if (data.streamUrl) {
-    extraDetails = `
-      <div class="download-error">Download failed, but streaming is available.</div>
-      <div class="download-path">
-        <a href="${backendUrl}/stream/${data.id}" target="_blank" style="color: var(--accent-color);">
-          Watch Now
-        </a>
-      </div>`;
-  }
-} else if (data.streamUrl) {
-    extraDetails = `
-      <div class="download-error">Download failed, but streaming is available.</div>
-      <div class="download-path">
-        <a href="${backendUrl}/stream/${data.id}" target="_blank" style="color: var(--accent-color);">
-          Watch Now
-        </a>
-      </div>`;
-  } else if (data.status === 'error' || data.status === 'failed') {
+} else if (data.status === 'stream_only' || data.streamUrl) {
+  extraDetails = `
+    <div class="download-error">Download failed, but streaming is available.</div>
+    <div class="download-path">
+      <a href="${backendUrl}/stream/${data.id}" target="_blank" style="color: var(--accent-color);">
+        Watch Now
+      </a>
+    </div>`;
+} else if (data.status === 'error' || data.status === 'failed') {
   if (data.error) {
     extraDetails = `<div class="download-error">${data.error}</div>`;
   }
@@ -404,6 +394,7 @@ if (data.status === 'downloading') {
     </div>`;
   }
 }
+
 
     
     downloadEl.innerHTML = `
