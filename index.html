@@ -116,10 +116,22 @@
       margin-top: 1rem;
     }
     #tvFields { display: none; }
+
+    .login-notice {
+      margin-bottom: 1rem;
+    }
+    .login-notice a {
+      color: var(--accent-color);
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <h1>Hexa Media Downloader</h1>
+
+  <div class="login-notice">
+    🔐 <strong>Note:</strong> You must <a href="https://backend.hexadownloader.co.za" target="_blank">log in to backend</a> before searching.
+  </div>
 
   <div class="section">
     <h2>Search Movies or TV</h2>
@@ -181,7 +193,10 @@
 
     try {
       const firstUrl = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=1`;
-      const firstResp = await fetch(firstUrl);
+      const firstResp = await fetch(firstUrl, {
+        credentials: 'include',
+        mode: 'cors'
+      });
       if (!firstResp.ok) throw new Error(`Search error: ${firstResp.status}`);
       const firstData = await firstResp.json();
       allResults = firstData.results || [];
@@ -190,7 +205,7 @@
       const pagePromises = [];
       for (let p = 2; p <= totalPages; p++) {
         const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
-        pagePromises.push(fetch(url).then(r => r.json()));
+        pagePromises.push(fetch(url, { credentials: 'include', mode: 'cors' }).then(r => r.json()));
       }
       const pagesData = await Promise.all(pagePromises);
       pagesData.forEach(data => {
@@ -255,7 +270,7 @@
     episodeSelect.innerHTML = '<option value="">Select Episode</option>';
     try {
       const tvInfoUrl = `${backendUrl}/tvinfo?id=${tvId}`;
-      const resp = await fetch(tvInfoUrl);
+      const resp = await fetch(tvInfoUrl, { credentials: 'include', mode: 'cors' });
       const data = await resp.json();
       if (data.seasons && data.seasons.length > 0) {
         data.seasons.forEach(s => {
@@ -280,7 +295,7 @@
     if (!seasonNumber) return;
     try {
       const seasonUrl = `${backendUrl}/tvinfo/season?tvId=${tvId}&season=${seasonNumber}`;
-      const sResp = await fetch(seasonUrl);
+      const sResp = await fetch(seasonUrl, { credentials: 'include', mode: 'cors' });
       const sData = await sResp.json();
       if (sData.episodes) {
         sData.episodes.forEach(ep => {
@@ -324,7 +339,9 @@
       const resp = await fetch(`${backendUrl}/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: 'include',
+        mode: 'cors'
       });
       const data = await resp.json();
       statusEl.textContent = JSON.stringify(data, null, 2);
