@@ -394,8 +394,7 @@ if (data.status === 'downloading') {
           Watch Now
         </a>
       </div>`;
-  }
-} else if (data.status === 'error' || data.status === 'failed') {
+  } else if (data.status === 'error' || data.status === 'failed') {
   if (data.error) {
     extraDetails = `<div class="download-error">${data.error}</div>`;
   }
