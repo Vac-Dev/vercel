@@ -2,697 +2,123 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hexa Media Downloader (Dark Edition)</title>
+  <title>Hexa Media Downloader</title>
   <style>
     :root {
       --bg-color: #121212;
       --card-color: #1E1E1E;
       --text-color: #E2E2E2;
       --accent-color: #03DAC5;
-      --btn-hover: #00bfa5;
-      --border-radius: 8px;
-      --transition-speed: 0.2s;
       --error-color: #CF6679;
       --success-color: #4CAF50;
       --warning-color: #FFC107;
-      --info-color: #2196F3;
     }
     body {
       margin: 0;
       padding: 1rem;
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-family: sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
     }
-    h1, h2 {
-      margin-bottom: 0.4rem;
-    }
-    .section {
-      background: var(--card-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-    label {
-      display: block;
-      margin: 0.6rem 0 0.2rem;
-      font-weight: 600;
-    }
-    input[type="text"], input[type="number"], select {
-      width: 100%;
-      padding: 0.5rem;
-      margin-bottom: 0.6rem;
-      border: 1px solid #555;
-      border-radius: var(--border-radius);
-      background: #2C2C2C;
-      color: #fff;
-    }
-    button {
-      background: var(--accent-color);
-      color: #000;
-      border: none;
-      padding: 0.6rem 1rem;
-      margin-top: 0.4rem;
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      transition: background var(--transition-speed);
-    }
-    button:hover {
-      background: var(--btn-hover);
-    }
-    .results-grid {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      margin-top: 1rem;
-    }
-    .card {
-      background: var(--card-color);
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      position: relative;
-      transition: transform var(--transition-speed);
-    }
-    .card:hover {
-      transform: translateY(-3px);
-    }
-    .card img {
-      display: block;
-      width: 100%;
-      border-radius: var(--border-radius);
-      margin-bottom: 0.5rem;
-      height: 330px;
-      object-fit: cover;
-      background: #333;
-    }
-    .card h3 {
-      margin: 0.3rem 0 0.2rem;
-      font-size: 1.1rem;
-    }
-    .card p {
-      margin: 0.2rem 0;
-      font-size: 0.85rem;
-      line-height: 1.2rem;
-      color: #ccc;
-    }
-    .select-btn {
-      background: #3F51B5;
-      color: #fff;
-      margin-top: 0.5rem;
-    }
-    .card.selected {
-      outline: 3px solid var(--accent-color);
-      outline-offset: -3px;
-    }
-    #status {
-      background: #2C2C2C;
-      border-radius: var(--border-radius);
-      padding: 1rem;
-      min-height: 40px;
-      color: #fff;
-      white-space: pre-wrap;
-      margin-top: 1rem;
-    }
-    #loadMoreBtn {
-      display: inline-block;
-      margin-top: 1rem;
-    }
-    #tvFields { display: none; }
-
-    .login-notice {
-      margin-bottom: 1rem;
-    }
-    .login-notice a {
-      color: var(--accent-color);
-      text-decoration: underline;
-    }
-    
-    /* New styles for downloads section */
     .download-item {
-      background: #2A2A2A;
-      border-radius: var(--border-radius);
+      border: 1px solid #333;
       padding: 1rem;
       margin-bottom: 1rem;
-      position: relative;
+      border-radius: 6px;
+      background: var(--card-color);
     }
-    
-    .download-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-    
-    .download-title {
-      font-weight: bold;
-      font-size: 1.1rem;
-      margin: 0;
-    }
-    
-    .download-status {
-      font-size: 0.9rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      font-weight: 500;
-    }
-    
-    .status-initializing { background: var(--info-color); color: white; }
-    .status-loading { background: var(--info-color); color: white; }
-    .status-downloading { background: var(--warning-color); color: black; }
-    .status-completed { background: var(--success-color); color: white; }
-    .status-error, .status-failed { background: var(--error-color); color: white; }
-    
-    .progress-container {
-      height: 8px;
-      background: #444;
-      border-radius: 4px;
-      overflow: hidden;
-      margin: 0.5rem 0;
-    }
-    
     .progress-bar {
-      height: 100%;
+      height: 10px;
       background: var(--accent-color);
       width: 0%;
       transition: width 0.3s ease;
     }
-    
-    .download-details {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.9rem;
-      color: #AAA;
+    .status-stream_only {
+      background: #444;
+      color: var(--warning-color);
     }
-    
-    .downloads-section {
-      margin-top: 2rem;
-    }
-    
-    .download-error {
-      color: var(--error-color);
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-    
-    .download-path {
-      font-family: monospace;
-      background: #222;
-      padding: 0.3rem;
-      border-radius: 4px;
-      margin-top: 0.5rem;
-      overflow-x: auto;
-      word-break: break-all;
-    }
-    
-    .hidden {
-      display: none;
-    }
-    
-    .time-remaining {
-      font-size: 0.85rem;
-      color: #BBB;
-      margin-top: 0.3rem;
-    }
-    
-    .cancel-btn {
-      background: #555;
-      padding: 0.3rem 0.6rem;
-      font-size: 0.8rem;
-      margin-left: 0.5rem;
+    video {
+      margin-top: 1rem;
+      max-width: 100%;
+      border: 2px solid var(--accent-color);
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
   <h1>Hexa Media Downloader</h1>
 
-  <div class="login-notice">
-    🔐 <strong>Note:</strong> You must <a href="https://backend.hexadownloader.co.za" target="_blank">log in to backend</a> before searching.
-  </div>
+  <form id="downloadForm">
+    <label>Type:
+      <select id="type">
+        <option value="movie">Movie</option>
+        <option value="tv">TV</option>
+      </select>
+    </label><br/>
+    <label>Hexa ID: <input type="text" id="id" required /></label><br/>
+    <label>Title: <input type="text" id="title" required /></label><br/>
+    <label>Season (TV Only): <input type="text" id="season" /></label><br/>
+    <label>Episode (TV Only): <input type="text" id="episode" /></label><br/>
+    <button type="submit">Start Download</button>
+  </form>
 
-  <div class="section">
-    <h2>Search Movies or TV</h2>
-    <label for="searchType">Type:</label>
-    <select id="searchType">
-      <option value="movie">Movie</option>
-      <option value="tv">TV</option>
-    </select>
-    <label for="searchQuery">Query:</label>
-    <input id="searchQuery" type="text" placeholder="e.g. 'Fire' or 'Country'" />
-    <button id="btnSearch">Search</button>
-    
-    <div id="searchResults" class="results-grid"></div>
-    <button id="loadMoreBtn" style="display: none;">Load More</button>
-  </div>
+  <div id="downloads"></div>
 
-  <div class="section" id="downloadSection">
-    <h2>Download Details</h2>
-    <form id="downloadForm">
-      <label>Type:</label>
-      <input type="text" id="downloadType" value="tv" required />
-      <label>Hexa ID:</label>
-      <input type="text" id="hexaId" required />
-      <label>Title:</label>
-      <input type="text" id="titleInput" placeholder="Auto-filled" required />
-      <div id="tvFields">
-        <label for="seasonSelect">Season:</label>
-        <select id="seasonSelect">
-          <option value="">Select Season</option>
-        </select>
-        <label for="episodeSelect">Episode:</label>
-        <select id="episodeSelect">
-          <option value="">Select Episode</option>
-        </select>
-      </div>
-      <button type="submit">Download</button>
-    </form>
-    <div id="status"></div>
-  </div>
-  
-  <div class="section downloads-section">
-    <h2>Active Downloads</h2>
-    <div id="activeDownloads"></div>
-  </div>
+  <script>
+    const backend = 'https://backend.hexadownloader.co.za';
 
-<script>
-  const backendUrl = 'https://backend.hexadownloader.co.za';
-  
-  // WebSocket URL with protocol based on current page
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsBaseUrl = backendUrl.replace(/^https?:/, wsProtocol);
-  
-  // Track active WebSocket connections
-  const activeConnections = {};
-  // Track active downloads
-  const activeDownloads = {};
+    document.getElementById('downloadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const type = document.getElementById('type').value;
+      const id = document.getElementById('id').value;
+      const title = document.getElementById('title').value;
+      const season = document.getElementById('season').value;
+      const episode = document.getElementById('episode').value;
 
-  let allResults = [];
-  let visibleIndex = 0;
-  const pageSize = 20;
-  const searchResultsDiv = document.getElementById('searchResults');
-  const loadMoreBtn = document.getElementById('loadMoreBtn');
-  const activeDownloadsContainer = document.getElementById('activeDownloads');
-
-  // Format file size into human-readable format
-  function formatFileSize(bytes) {
-    if (!bytes) return '0 B';
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
-  }
-
-  // Format time in seconds to MM:SS or HH:MM:SS
-  function formatTime(seconds) {
-    if (!seconds || isNaN(seconds)) return '00:00';
-    
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hrs > 0) {
-      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  // Estimate time remaining based on progress
-  function estimateTimeRemaining(progress, elapsedSeconds) {
-    if (!progress || progress <= 0 || !elapsedSeconds) return null;
-    const totalSeconds = (elapsedSeconds / progress) * 100;
-    const remainingSeconds = totalSeconds - elapsedSeconds;
-    return remainingSeconds > 0 ? formatTime(remainingSeconds) : '00:00';
-  }
-
-  // Connect to WebSocket for real-time updates
-  function connectWebSocket(downloadId) {
-    if (activeConnections[downloadId]) {
-      console.log(`WebSocket for ${downloadId} already exists`);
-      return;
-    }
-    
-    const ws = new WebSocket(`${wsBaseUrl}/ws?id=${downloadId}`);
-    
-    ws.onopen = () => {
-      console.log(`WebSocket connected for ${downloadId}`);
-      activeConnections[downloadId] = ws;
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      updateDownloadUI(data);
-    };
-    
-    ws.onclose = () => {
-      console.log(`WebSocket closed for ${downloadId}`);
-      delete activeConnections[downloadId];
-    };
-    
-    ws.onerror = (error) => {
-      console.error(`WebSocket error for ${downloadId}:`, error);
-    };
-    
-    return ws;
-  }
-
-  // Create or update download UI element
-  function updateDownloadUI(data) {
-    if (!data || !data.id) return;
-    
-    // Update our tracking object
-    const isNew = !activeDownloads[data.id];
-    const downloadStartTime = activeDownloads[data.id]?.startTime || Date.now();
-    activeDownloads[data.id] = {
-      ...data,
-      startTime: downloadStartTime
-    };
-    
-    // Calculate elapsed time
-    const elapsedSeconds = (Date.now() - downloadStartTime) / 1000;
-    
-    // Find or create the download element
-    let downloadEl = document.getElementById(`download-${data.id}`);
-    
-    if (!downloadEl) {
-      downloadEl = document.createElement('div');
-      downloadEl.id = `download-${data.id}`;
-      downloadEl.className = 'download-item';
-      activeDownloadsContainer.appendChild(downloadEl);
-    }
-    
-    // Format the title based on media type
-    const mediaInfo = data.mediaInfo || {};
-    let title = mediaInfo.title || 'Unknown';
-    
-    if (mediaInfo.type === 'tv' && mediaInfo.season && mediaInfo.episode) {
-      title = `${title} - S${mediaInfo.season}E${mediaInfo.episode}`;
-    }
-    
-    // Generate extra details based on download type and status
-    let extraDetails = '';
-    let timeRemaining = '';
-    
-    if (data.status === 'downloading') {
-      if (data.totalSize && data.downloadedSize) {
-        extraDetails = `${formatFileSize(data.downloadedSize)} / ${formatFileSize(data.totalSize)}`;
+      const payload = { type, id, title };
+      if (type === 'tv') {
+        payload.season = season;
+        payload.episode = episode;
       }
-      
-      if (data.progress > 0) {
-        const remaining = estimateTimeRemaining(data.progress, elapsedSeconds);
-        if (remaining) {
-          timeRemaining = `<div class="time-remaining">Estimated time remaining: ${remaining}</div>`;
-        }
-      }
-    } else if (data.status === 'completed') {
-      if (data.filePath) {
-        extraDetails = `<div class="download-path">${data.filePath}</div>`;
-      }
-    } else if (data.status === 'error' || data.status === 'failed') {
-      if (data.error) {
-        extraDetails = `<div class="download-error">${data.error}</div>`;
-      }
-      
-      if (data.manualLink) {
-        extraDetails += `<div class="download-path">
-          Manual link: <a href="${data.manualLink}" target="_blank" style="color: var(--accent-color);">${data.manualLink}</a>
-        </div>`;
-      }
-    }
-    
-    // Update the content
-    downloadEl.innerHTML = `
-      <div class="download-header">
-        <h3 class="download-title">${title}</h3>
-        <span class="download-status status-${data.status}">${data.status.toUpperCase()}</span>
-      </div>
-      <div class="progress-container">
-        <div class="progress-bar" style="width: ${data.progress || 0}%"></div>
-      </div>
-      <div class="download-details">
-        <span>${data.type ? `Format: ${data.type.toUpperCase()}` : ''}</span>
-        <span>${data.progress ? `${data.progress}%` : ''}</span>
-      </div>
-      ${timeRemaining}
-      ${extraDetails}
-    `;
-    
-    // Clean up completed or failed downloads after 1 hour
-    if (data.status === 'completed' || data.status === 'error' || data.status === 'failed') {
-      setTimeout(() => {
-        const downloadEl = document.getElementById(`download-${data.id}`);
-        if (downloadEl) {
-          downloadEl.remove();
-          delete activeDownloads[data.id];
-        }
-      }, 3600000); // 1 hour
-    }
-  }
 
-  document.getElementById('btnSearch').addEventListener('click', async () => {
-    searchResultsDiv.innerHTML = '';
-    loadMoreBtn.style.display = 'none';
-    allResults = [];
-    visibleIndex = 0;
-
-    const typeVal = document.getElementById('searchType').value;
-    const queryVal = document.getElementById('searchQuery').value.trim();
-    if (!queryVal) return alert('Please enter a search query.');
-
-    try {
-      const firstUrl = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=1`;
-      const firstResp = await fetch(firstUrl, {
-        credentials: 'include',
-        mode: 'cors'
-      });
-      if (!firstResp.ok) throw new Error(`Search error: ${firstResp.status}`);
-      const firstData = await firstResp.json();
-      allResults = firstData.results || [];
-      let totalPages = firstData.total_pages || 1;
-
-      // Get first page before fetching others
-      renderResultsChunk();
-      
-      // If more than one page, fetch additional pages asynchronously
-      if (totalPages > 1) {
-        const pagePromises = [];
-        for (let p = 2; p <= Math.min(totalPages, 5); p++) { // Limit to 5 pages max
-          const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
-          pagePromises.push(fetch(url, { credentials: 'include', mode: 'cors' }).then(r => r.json()));
-        }
-        
-        try {
-          const pagesData = await Promise.all(pagePromises);
-          pagesData.forEach(data => {
-            if (data.results) allResults = allResults.concat(data.results);
-          });
-          
-          // Update UI with all results
-          searchResultsDiv.innerHTML = '';
-          visibleIndex = 0;
-          renderResultsChunk();
-        } catch (pageErr) {
-          console.error('Error fetching additional pages:', pageErr);
-        }
-      }
-      
-      if (allResults.length > pageSize) loadMoreBtn.style.display = 'inline-block';
-    } catch (err) {
-      console.error(err);
-      searchResultsDiv.innerHTML = `Error: ${err.toString()}`;
-    }
-  });
-
-  function renderResultsChunk() {
-    const chunk = allResults.slice(visibleIndex, visibleIndex + pageSize);
-    visibleIndex += pageSize;
-    chunk.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const posterUrl = item.poster_path 
-        ? 'https://image.tmdb.org/t/p/w200' + item.poster_path 
-        : 'https://via.placeholder.com/200x300/444/fff?text=No+Image';
-      const displayTitle = item.title || item.name || 'Untitled';
-      const releaseDate = item.release_date || item.first_air_date || '';
-      const overview = item.overview ? item.overview.substring(0,100) + '...' : '';
-
-      card.innerHTML = `
-        <img src="${posterUrl}" alt="poster">
-        <h3>${displayTitle}</h3>
-        <p><b>ID:</b> ${item.id}</p>
-        <p><b>Release:</b> ${releaseDate}</p>
-        <p>${overview}</p>
-        <button class="select-btn" data-id="${item.id}" data-title="${displayTitle}">Select</button>
-      `;
-      searchResultsDiv.appendChild(card);
-
-      card.querySelector('.select-btn').addEventListener('click', async () => {
-        document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        document.getElementById('downloadType').value = item.media_type || document.getElementById('searchType').value;
-        document.getElementById('hexaId').value = item.id;
-        document.getElementById('titleInput').value = displayTitle;
-        if (document.getElementById('downloadType').value.toLowerCase() === 'tv') {
-          await fetchTvSeasons(item.id);
-        } else {
-          document.getElementById('tvFields').style.display = 'none';
-        }
-        document.getElementById('downloadSection').scrollIntoView({ behavior: 'smooth' });
-      });
-    });
-    if (visibleIndex >= allResults.length) loadMoreBtn.style.display = 'none';
-  }
-
-  loadMoreBtn.addEventListener('click', renderResultsChunk);
-
-  async function fetchTvSeasons(tvId) {
-    document.getElementById('tvFields').style.display = 'block';
-    const seasonSelect = document.getElementById('seasonSelect');
-    const episodeSelect = document.getElementById('episodeSelect');
-    seasonSelect.innerHTML = '<option value="">Select Season</option>';
-    episodeSelect.innerHTML = '<option value="">Select Episode</option>';
-    try {
-      const tvInfoUrl = `${backendUrl}/tvinfo?id=${tvId}`;
-      const resp = await fetch(tvInfoUrl, { credentials: 'include', mode: 'cors' });
-      const data = await resp.json();
-      if (data.seasons && data.seasons.length > 0) {
-        data.seasons.forEach(s => {
-          if (s.season_number > 0) {
-            const opt = document.createElement('option');
-            opt.value = s.season_number;
-            opt.textContent = s.name || `Season ${s.season_number}`;
-            seasonSelect.appendChild(opt);
-          }
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching tv info:', err);
-    }
-  }
-
-  document.getElementById('seasonSelect').addEventListener('change', async (e) => {
-    const tvId = document.getElementById('hexaId').value;
-    const seasonNumber = e.target.value;
-    const episodeSelect = document.getElementById('episodeSelect');
-    episodeSelect.innerHTML = '<option value="">Select Episode</option>';
-    if (!seasonNumber) return;
-    try {
-      const seasonUrl = `${backendUrl}/tvinfo/season?tvId=${tvId}&season=${seasonNumber}`;
-      const sResp = await fetch(seasonUrl, { credentials: 'include', mode: 'cors' });
-      const sData = await sResp.json();
-      if (sData.episodes) {
-        sData.episodes.forEach(ep => {
-          const opt = document.createElement('option');
-          opt.value = ep.episode_number;
-          opt.textContent = `Ep ${ep.episode_number}: ${ep.name}`;
-          episodeSelect.appendChild(opt);
-        });
-      }
-    } catch (err) {
-      console.error('Error fetching season episodes:', err);
-    }
-  });
-
-  document.getElementById('downloadType').addEventListener('input', (e) => {
-    document.getElementById('tvFields').style.display = (e.target.value.toLowerCase() === 'tv') ? 'block' : 'none';
-  });
-
-  const downloadForm = document.getElementById('downloadForm');
-  const statusEl = document.getElementById('status');
-
-  downloadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    statusEl.textContent = 'Starting download...';
-    const type = document.getElementById('downloadType').value;
-    const id = document.getElementById('hexaId').value;
-    const title = document.getElementById('titleInput').value || 'Untitled';
-    const payload = { type, id, title };
-    if (type.toLowerCase() === 'tv') {
-      const season = document.getElementById('seasonSelect').value;
-      const episode = document.getElementById('episodeSelect').value;
-      if (!season || !episode) {
-        statusEl.textContent = 'Please select a season and episode first.';
-        return;
-      }
-      payload.season = season;
-      payload.episode = episode;
-    }
-
-    try {
-      const resp = await fetch(`${backendUrl}/download`, {
+      const res = await fetch(`${backend}/download`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
         credentials: 'include',
-        mode: 'cors'
+        body: JSON.stringify(payload)
       });
-      
-      if (!resp.ok) {
-        throw new Error(`Server returned ${resp.status}: ${resp.statusText}`);
-      }
-      
-      const data = await resp.json();
-      statusEl.textContent = 'Download has been initiated!';
-      
-      // Connect to WebSocket for real-time updates
-      if (data.downloadId) {
-        connectWebSocket(data.downloadId);
-        
-        // Create initial UI
-        updateDownloadUI({
-          id: data.downloadId,
-          status: 'initializing',
-          progress: 0,
-          mediaInfo: {
-            type: type.toLowerCase(),
-            title,
-            season: payload.season,
-            episode: payload.episode
-          }
-        });
-        
-        // Scroll to active downloads section
-        document.querySelector('.downloads-section').scrollIntoView({ behavior: 'smooth' });
-      }
-    } catch (err) {
-      statusEl.textContent = 'Error: ' + err.toString();
-    }
-  });
-  
-  // Check for any existing downloads on page load
-  async function checkExistingDownloads() {
-    try {
-      const resp = await fetch(`${backendUrl}/status`, {
-        credentials: 'include',
-        mode: 'cors'
-      });
-      
-      if (resp.ok) {
-        const downloads = await resp.json();
-        
-        if (downloads && downloads.length > 0) {
-          downloads.forEach(download => {
-            if (download.id) {
-              connectWebSocket(download.id);
-              updateDownloadUI(download);
-            }
-          });
+
+      const data = await res.json();
+      const container = document.createElement('div');
+      container.className = 'download-item';
+      container.id = `download-${data.downloadId}`;
+      container.innerHTML = `
+        <strong>${title}</strong><br/>
+        <span id="status-${data.downloadId}">Initializing...</span>
+        <div class="progress-bar" id="progress-${data.downloadId}"></div>
+        <div id="video-${data.downloadId}"></div>
+      `;
+      document.getElementById('downloads').appendChild(container);
+
+      const ws = new WebSocket(data.webSocketUrl.replace('http', 'ws'));
+      ws.onmessage = (event) => {
+        const update = JSON.parse(event.data);
+        document.getElementById(`status-${update.id}`).innerText = update.status.toUpperCase();
+        const bar = document.getElementById(`progress-${update.id}`);
+        bar.style.width = `${update.progress || 0}%`;
+
+        // Show video player if it's stream-only
+        if (update.status === 'stream_only' && update.streamUrl) {
+          const videoContainer = document.getElementById(`video-${update.id}`);
+          videoContainer.innerHTML = `
+            <video controls autoplay>
+              <source src="${backend}/stream/${update.id}" type="application/vnd.apple.mpegurl">
+              Your browser does not support streaming playback.
+            </video>
+          `;
         }
-      }
-    } catch (err) {
-      console.error('Error checking existing downloads:', err);
-    }
-  }
-  
-  // Initial check for existing downloads
-  checkExistingDownloads();
-  
-  // Search input Enter key handling
-  document.getElementById('searchQuery').addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-      document.getElementById('btnSearch').click();
-    }
-  });
-</script>
+      };
+    });
+  </script>
 </body>
 </html>
