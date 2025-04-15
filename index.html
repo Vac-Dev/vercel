@@ -376,8 +376,8 @@
     } else if (data.status === 'completed') {
       if (data.filePath) {
         extraDetails = `<div class="download-path">${data.filePath}</div>`;
-      }
-    } } else if (data.status === 'stream_only') {
+      
+     } else if (data.status === 'stream_only') {
   if (data.embedUrl) {
     extraDetails = `
       <div class="download-error">Download failed, but streaming is available.</div>
