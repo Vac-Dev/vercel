@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hexa Media Downloader (Dark Edition)</title>
+  <style>
+    /* -- GLOBAL DARK THEME -- */
+    :root {
+      --bg-color: #121212;
+      --card-color: #1E1E1E;
+      --text-color: #E2E2E2;
+      --accent-color: #03DAC5; /* teal accent, like Material Dark */
+      --btn-hover: #00bfa5;
+      --border-radius: 8px;
+      --transition-speed: 0.2s;
+    }
+    body {
+      margin: 0;
+      padding: 1rem;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+    }
+    h1, h2 {
+      margin-bottom: 0.4rem;
+    }
+
+    /* CONTAINER STYLES */
+    .section {
+      background: var(--card-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    label {
+      display: block;
+      margin: 0.6rem 0 0.2rem;
+      font-weight: 600;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.6rem;
+      border: 1px solid #555;
+      border-radius: var(--border-radius);
+      background: #2C2C2C;
+      color: #fff;
+    }
+    button {
+      background: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 0.6rem 1rem;
+      margin-top: 0.4rem;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: background var(--transition-speed);
+    }
+    button:hover {
+      background: var(--btn-hover);
+    }
+
+    .results-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      margin-top: 1rem;
+    }
+    .card {
+      background: var(--card-color);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      position: relative;
+      transition: transform var(--transition-speed);
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+    .card img {
+      display: block;
+      width: 100%;
+      border-radius: var(--border-radius);
+      margin-bottom: 0.5rem;
+      height: 330px;
+      object-fit: cover;
+      background: #333;
+    }
+    .card h3 {
+      margin: 0.3rem 0 0.2rem;
+      font-size: 1.1rem;
+    }
+    .card p {
+      margin: 0.2rem 0;
+      font-size: 0.85rem;
+      line-height: 1.2rem;
+      color: #ccc;
+    }
+    .select-btn {
+      background: #3F51B5;
+      color: #fff;
+      margin-top: 0.5rem;
+    }
+
+    /* HIGHLIGHT SELECTED CARD */
+    .card.selected {
+      outline: 3px solid var(--accent-color);
+      outline-offset: -3px;
+    }
+
+    #status {
+      background: #2C2C2C;
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      min-height: 40px;
+      color: #fff;
+      white-space: pre-wrap;
+      margin-top: 1rem;
+    }
+    #loadMoreBtn {
+      display: inline-block;
+      margin-top: 1rem;
+    }
+    /* Hide TV fields if not "tv" */
+    #tvFields {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hexa Media Downloader</h1>
+
+  <!-- SEARCH SECTION -->
+  <div class="section">
+    <h2>Search Movies or TV</h2>
+    <label for="searchType">Type:</label>
+    <select id="searchType">
+      <option value="movie">Movie</option>
+      <option value="tv">TV</option>
+    </select>
+    <label for="searchQuery">Query:</label>
+    <input id="searchQuery" type="text" placeholder="e.g. 'Fire' or 'Country'" />
+    <button id="btnSearch">Search</button>
+    
+    <div id="searchResults" class="results-grid"></div>
+    <button id="loadMoreBtn" style="display: none;">Load More</button>
+  </div>
+
+  <!-- DOWNLOAD SECTION -->
+  <div class="section">
+    <h2>Download Details</h2>
+    <form id="downloadForm">
+      <label>Type:</label>
+      <input type="text" id="downloadType" value="tv" required />
+
+      <label>Hexa ID:</label>
+      <input type="text" id="hexaId" required />
+
+      <label>Title:</label>
+      <input type="text" id="titleInput" placeholder="Auto-filled" required />
+
+      <div id="tvFields">
+        <label for="seasonSelect">Season:</label>
+        <select id="seasonSelect">
+          <option value="">Select Season</option>
+        </select>
+
+        <label for="episodeSelect">Episode:</label>
+        <select id="episodeSelect">
+          <option value="">Select Episode</option>
+        </select>
+      </div>
+
+      <button type="submit">Download</button>
+    </form>
+    <div id="status"></div>
+  </div>
+
+<script>
+  const backendUrl = 'http://localhost:3000'; // Adjust if needed
+
+  // ============ SEARCH LOGIC ============
+  let allResults = [];
+  let visibleIndex = 0;
+  const pageSize = 20; // show 20 results at a time
+  const searchResultsDiv = document.getElementById('searchResults');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  document.getElementById('btnSearch').addEventListener('click', async () => {
+    searchResultsDiv.innerHTML = '';
+    loadMoreBtn.style.display = 'none';
+    allResults = [];
+    visibleIndex = 0;
+
+    const typeVal = document.getElementById('searchType').value;
+    const queryVal = document.getElementById('searchQuery').value.trim();
+    if (!queryVal) {
+      alert('Please enter a search query.');
+      return;
+    }
+    try {
+      // 1) Fetch page 1 to see total_pages
+      const firstUrl = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=1`;
+      const firstResp = await fetch(firstUrl);
+      if (!firstResp.ok) throw new Error(`Search error: ${firstResp.status}`);
+      const firstData = await firstResp.json();
+
+      allResults = firstData.results || [];
+      let totalPages = firstData.total_pages || 1;
+
+      // 2) Fetch the rest of the pages in parallel
+      const pagePromises = [];
+      for (let p = 2; p <= totalPages; p++) {
+        const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
+        pagePromises.push(fetch(url).then(r => r.json()));
+      }
+      const pagesData = await Promise.all(pagePromises);
+      pagesData.forEach(data => {
+        if (data.results) {
+          allResults = allResults.concat(data.results);
+        }
+      });
+
+      // We have all results in memory now
+      renderResultsChunk(); // Show first chunk
+      if (allResults.length > pageSize) {
+        loadMoreBtn.style.display = 'inline-block';
+      }
+    } catch (err) {
+      console.error(err);
+      searchResultsDiv.innerHTML = `Error: ${err.toString()}`;
+    }
+  });
+
+  // Render a chunk of 20 results
+  function renderResultsChunk() {
+    const chunk = allResults.slice(visibleIndex, visibleIndex + pageSize);
+    visibleIndex += pageSize;
+
+    chunk.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      // Build poster URL
+      const posterUrl = item.poster_path 
+        ? 'https://image.tmdb.org/t/p/w200' + item.poster_path 
+        : 'https://via.placeholder.com/200x300/444/fff?text=No+Image';
+
+      const displayTitle = item.title || item.name || 'Untitled';
+      const releaseDate = item.release_date || item.first_air_date || '';
+      const overview = item.overview ? item.overview.substring(0,100) + '...' : '';
+
+      card.innerHTML = `
+        <img src="${posterUrl}" alt="poster">
+        <h3>${displayTitle}</h3>
+        <p><b>ID:</b> ${item.id}</p>
+        <p><b>Release:</b> ${releaseDate}</p>
+        <p>${overview}</p>
+        <button class="select-btn" data-id="${item.id}" data-title="${displayTitle}">Select ${item.media_type || ''}</button>
+      `;
+      searchResultsDiv.appendChild(card);
+
+      // Select button logic
+      const selectBtn = card.querySelector('.select-btn');
+      selectBtn.addEventListener('click', async () => {
+        // Remove 'selected' from any other card
+        document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+        // Highlight this card
+        card.classList.add('selected');
+
+        // Fill the download form
+        document.getElementById('downloadType').value = item.media_type || document.getElementById('searchType').value;
+        document.getElementById('hexaId').value = item.id;
+        document.getElementById('titleInput').value = displayTitle;
+
+        // If it's a TV item, fetch seasons
+        if (document.getElementById('downloadType').value.toLowerCase() === 'tv') {
+          await fetchTvSeasons(item.id);
+        } else {
+          // Hide tv fields
+          document.getElementById('tvFields').style.display = 'none';
+        }
+
+        // Scroll down to the download section
+        document.getElementById('downloadSection').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    // Hide LoadMore if we've shown all
+    if (visibleIndex >= allResults.length) {
+      loadMoreBtn.style.display = 'none';
+    }
+  }
+
+  // Load More button
+  loadMoreBtn.addEventListener('click', () => {
+    renderResultsChunk();
+  });
+
+  // ============ TV INFO: SEASON + EPISODES ============
+  async function fetchTvSeasons(tvId) {
+    document.getElementById('tvFields').style.display = 'block';
+    const seasonSelect = document.getElementById('seasonSelect');
+    const episodeSelect = document.getElementById('episodeSelect');
+    seasonSelect.innerHTML = '<option value="">Select Season</option>';
+    episodeSelect.innerHTML = '<option value="">Select Episode</option>';
+
+    try {
+      const tvInfoUrl = `${backendUrl}/tvinfo?id=${tvId}`;
+      const resp = await fetch(tvInfoUrl);
+      const data = await resp.json();
+      if (data.seasons && data.seasons.length > 0) {
+        data.seasons.forEach(s => {
+          if (s.season_number > 0) {
+            const opt = document.createElement('option');
+            opt.value = s.season_number;
+            opt.textContent = s.name || `Season ${s.season_number}`;
+            seasonSelect.appendChild(opt);
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching tv info:', err);
+    }
+  }
+
+  // When season changes, fetch episodes
+  document.getElementById('seasonSelect').addEventListener('change', async (e) => {
+    const tvId = document.getElementById('hexaId').value;
+    const seasonNumber = e.target.value;
+    const episodeSelect = document.getElementById('episodeSelect');
+    episodeSelect.innerHTML = '<option value="">Select Episode</option>';
+    if (!seasonNumber) return;
+    try {
+      const seasonUrl = `${backendUrl}/tvinfo/season?tvId=${tvId}&season=${seasonNumber}`;
+      const sResp = await fetch(seasonUrl);
+      const sData = await sResp.json();
+      if (sData.episodes) {
+        sData.episodes.forEach(ep => {
+          const opt = document.createElement('option');
+          opt.value = ep.episode_number;
+          opt.textContent = `Ep ${ep.episode_number}: ${ep.name}`;
+          episodeSelect.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching season episodes:', err);
+    }
+  });
+
+  // ============ DOWNLOAD FORM ============
+  document.getElementById('downloadType').addEventListener('input', (e) => {
+    const val = e.target.value.toLowerCase();
+    document.getElementById('tvFields').style.display = (val === 'tv') ? 'block' : 'none';
+  });
+
+  const downloadForm = document.getElementById('downloadForm');
+  const statusEl = document.getElementById('status');
+
+  downloadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = 'Starting download...';
+
+    const type = document.getElementById('downloadType').value;
+    const id = document.getElementById('hexaId').value;
+    const title = document.getElementById('titleInput').value || 'Untitled';
+
+    const payload = { type, id, title };
+    if (type.toLowerCase() === 'tv') {
+      const season = document.getElementById('seasonSelect').value;
+      const episode = document.getElementById('episodeSelect').value;
+      if (!season || !episode) {
+        statusEl.textContent = 'Please select a season and episode first.';
+        return;
+      }
+      payload.season = season;
+      payload.episode = episode;
+    }
+
+    try {
+      const resp = await fetch(`${backendUrl}/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      statusEl.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.toString();
+    }
+  });
+</script>
+</body>
+</html>
