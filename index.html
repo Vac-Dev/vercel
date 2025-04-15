@@ -376,18 +376,17 @@ if (data.status === 'downloading') {
   if (data.filePath) {
     extraDetails = `<div class="download-path">${data.filePath}</div>`;
   }
-} else if (data.status === 'stream_only') {
-  if (data.embedUrl) {
+} } else if (data.status === 'stream_only') {
+  if (data.streamUrl) {
     extraDetails = `
       <div class="download-error">Download failed, but streaming is available.</div>
-      <div style="margin-top: 0.5rem;">
-        <iframe 
-          src="${data.embedUrl}"
-          width="100%" height="360" frameborder="0" allowfullscreen
-          style="border-radius: 6px; background: #111;">
-        </iframe>
+      <div class="download-path">
+        <a href="${backendUrl}/stream/${data.id}" target="_blank" style="color: var(--accent-color);">
+          Watch Now
+        </a>
       </div>`;
-  } else if (data.streamUrl) {
+  }
+} else if (data.streamUrl) {
     extraDetails = `
       <div class="download-error">Download failed, but streaming is available.</div>
       <div class="download-path">
