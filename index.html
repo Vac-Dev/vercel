@@ -385,10 +385,7 @@
   if (data.message) {
     extraDetails = `<div class="download-error">${data.message}</div>`;
   }
-}
-
-
-   else if (data.status === 'stream_only' && data.manualLink) {
+} else if (data.status === 'stream_only' && data.manualLink) {
     extraDetails = `
       <div class="download-error">Download not available. You can stream it on FlickyStream:</div>
       <div class="download-path">
