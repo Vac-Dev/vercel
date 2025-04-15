@@ -4,12 +4,11 @@
   <meta charset="UTF-8" />
   <title>Hexa Media Downloader (Dark Edition)</title>
   <style>
-    /* -- GLOBAL DARK THEME -- */
     :root {
       --bg-color: #121212;
       --card-color: #1E1E1E;
       --text-color: #E2E2E2;
-      --accent-color: #03DAC5; /* teal accent, like Material Dark */
+      --accent-color: #03DAC5;
       --btn-hover: #00bfa5;
       --border-radius: 8px;
       --transition-speed: 0.2s;
@@ -24,8 +23,6 @@
     h1, h2 {
       margin-bottom: 0.4rem;
     }
-
-    /* CONTAINER STYLES */
     .section {
       background: var(--card-color);
       border-radius: var(--border-radius);
@@ -33,7 +30,6 @@
       margin-bottom: 1rem;
       box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
-
     label {
       display: block;
       margin: 0.6rem 0 0.2rem;
@@ -61,7 +57,6 @@
     button:hover {
       background: var(--btn-hover);
     }
-
     .results-grid {
       display: grid;
       gap: 1rem;
@@ -103,13 +98,10 @@
       color: #fff;
       margin-top: 0.5rem;
     }
-
-    /* HIGHLIGHT SELECTED CARD */
     .card.selected {
       outline: 3px solid var(--accent-color);
       outline-offset: -3px;
     }
-
     #status {
       background: #2C2C2C;
       border-radius: var(--border-radius);
@@ -123,16 +115,12 @@
       display: inline-block;
       margin-top: 1rem;
     }
-    /* Hide TV fields if not "tv" */
-    #tvFields {
-      display: none;
-    }
+    #tvFields { display: none; }
   </style>
 </head>
 <body>
   <h1>Hexa Media Downloader</h1>
 
-  <!-- SEARCH SECTION -->
   <div class="section">
     <h2>Search Movies or TV</h2>
     <label for="searchType">Type:</label>
@@ -148,43 +136,36 @@
     <button id="loadMoreBtn" style="display: none;">Load More</button>
   </div>
 
-  <!-- DOWNLOAD SECTION -->
-  <div class="section">
+  <div class="section" id="downloadSection">
     <h2>Download Details</h2>
     <form id="downloadForm">
       <label>Type:</label>
       <input type="text" id="downloadType" value="tv" required />
-
       <label>Hexa ID:</label>
       <input type="text" id="hexaId" required />
-
       <label>Title:</label>
       <input type="text" id="titleInput" placeholder="Auto-filled" required />
-
       <div id="tvFields">
         <label for="seasonSelect">Season:</label>
         <select id="seasonSelect">
           <option value="">Select Season</option>
         </select>
-
         <label for="episodeSelect">Episode:</label>
         <select id="episodeSelect">
           <option value="">Select Episode</option>
         </select>
       </div>
-
       <button type="submit">Download</button>
     </form>
     <div id="status"></div>
   </div>
 
 <script>
-  const backendUrl = 'http://localhost:3000'; // Adjust if needed
+  const backendUrl = 'https://backend.hexadownloader.co.za';
 
-  // ============ SEARCH LOGIC ============
   let allResults = [];
   let visibleIndex = 0;
-  const pageSize = 20; // show 20 results at a time
+  const pageSize = 20;
   const searchResultsDiv = document.getElementById('searchResults');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
 
@@ -196,21 +177,16 @@
 
     const typeVal = document.getElementById('searchType').value;
     const queryVal = document.getElementById('searchQuery').value.trim();
-    if (!queryVal) {
-      alert('Please enter a search query.');
-      return;
-    }
+    if (!queryVal) return alert('Please enter a search query.');
+
     try {
-      // 1) Fetch page 1 to see total_pages
       const firstUrl = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=1`;
       const firstResp = await fetch(firstUrl);
       if (!firstResp.ok) throw new Error(`Search error: ${firstResp.status}`);
       const firstData = await firstResp.json();
-
       allResults = firstData.results || [];
       let totalPages = firstData.total_pages || 1;
 
-      // 2) Fetch the rest of the pages in parallel
       const pagePromises = [];
       for (let p = 2; p <= totalPages; p++) {
         const url = `${backendUrl}/search?type=${typeVal}&query=${encodeURIComponent(queryVal)}&page=${p}`;
@@ -218,36 +194,26 @@
       }
       const pagesData = await Promise.all(pagePromises);
       pagesData.forEach(data => {
-        if (data.results) {
-          allResults = allResults.concat(data.results);
-        }
+        if (data.results) allResults = allResults.concat(data.results);
       });
 
-      // We have all results in memory now
-      renderResultsChunk(); // Show first chunk
-      if (allResults.length > pageSize) {
-        loadMoreBtn.style.display = 'inline-block';
-      }
+      renderResultsChunk();
+      if (allResults.length > pageSize) loadMoreBtn.style.display = 'inline-block';
     } catch (err) {
       console.error(err);
       searchResultsDiv.innerHTML = `Error: ${err.toString()}`;
     }
   });
 
-  // Render a chunk of 20 results
   function renderResultsChunk() {
     const chunk = allResults.slice(visibleIndex, visibleIndex + pageSize);
     visibleIndex += pageSize;
-
     chunk.forEach(item => {
       const card = document.createElement('div');
       card.className = 'card';
-
-      // Build poster URL
       const posterUrl = item.poster_path 
         ? 'https://image.tmdb.org/t/p/w200' + item.poster_path 
         : 'https://via.placeholder.com/200x300/444/fff?text=No+Image';
-
       const displayTitle = item.title || item.name || 'Untitled';
       const releaseDate = item.release_date || item.first_air_date || '';
       const overview = item.overview ? item.overview.substring(0,100) + '...' : '';
@@ -258,55 +224,35 @@
         <p><b>ID:</b> ${item.id}</p>
         <p><b>Release:</b> ${releaseDate}</p>
         <p>${overview}</p>
-        <button class="select-btn" data-id="${item.id}" data-title="${displayTitle}">Select ${item.media_type || ''}</button>
+        <button class="select-btn" data-id="${item.id}" data-title="${displayTitle}">Select</button>
       `;
       searchResultsDiv.appendChild(card);
 
-      // Select button logic
-      const selectBtn = card.querySelector('.select-btn');
-      selectBtn.addEventListener('click', async () => {
-        // Remove 'selected' from any other card
+      card.querySelector('.select-btn').addEventListener('click', async () => {
         document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
-        // Highlight this card
         card.classList.add('selected');
-
-        // Fill the download form
         document.getElementById('downloadType').value = item.media_type || document.getElementById('searchType').value;
         document.getElementById('hexaId').value = item.id;
         document.getElementById('titleInput').value = displayTitle;
-
-        // If it's a TV item, fetch seasons
         if (document.getElementById('downloadType').value.toLowerCase() === 'tv') {
           await fetchTvSeasons(item.id);
         } else {
-          // Hide tv fields
           document.getElementById('tvFields').style.display = 'none';
         }
-
-        // Scroll down to the download section
         document.getElementById('downloadSection').scrollIntoView({ behavior: 'smooth' });
       });
     });
-
-    // Hide LoadMore if we've shown all
-    if (visibleIndex >= allResults.length) {
-      loadMoreBtn.style.display = 'none';
-    }
+    if (visibleIndex >= allResults.length) loadMoreBtn.style.display = 'none';
   }
 
-  // Load More button
-  loadMoreBtn.addEventListener('click', () => {
-    renderResultsChunk();
-  });
+  loadMoreBtn.addEventListener('click', renderResultsChunk);
 
-  // ============ TV INFO: SEASON + EPISODES ============
   async function fetchTvSeasons(tvId) {
     document.getElementById('tvFields').style.display = 'block';
     const seasonSelect = document.getElementById('seasonSelect');
     const episodeSelect = document.getElementById('episodeSelect');
     seasonSelect.innerHTML = '<option value="">Select Season</option>';
     episodeSelect.innerHTML = '<option value="">Select Episode</option>';
-
     try {
       const tvInfoUrl = `${backendUrl}/tvinfo?id=${tvId}`;
       const resp = await fetch(tvInfoUrl);
@@ -326,7 +272,6 @@
     }
   }
 
-  // When season changes, fetch episodes
   document.getElementById('seasonSelect').addEventListener('change', async (e) => {
     const tvId = document.getElementById('hexaId').value;
     const seasonNumber = e.target.value;
@@ -350,10 +295,8 @@
     }
   });
 
-  // ============ DOWNLOAD FORM ============
   document.getElementById('downloadType').addEventListener('input', (e) => {
-    const val = e.target.value.toLowerCase();
-    document.getElementById('tvFields').style.display = (val === 'tv') ? 'block' : 'none';
+    document.getElementById('tvFields').style.display = (e.target.value.toLowerCase() === 'tv') ? 'block' : 'none';
   });
 
   const downloadForm = document.getElementById('downloadForm');
@@ -362,11 +305,9 @@
   downloadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusEl.textContent = 'Starting download...';
-
     const type = document.getElementById('downloadType').value;
     const id = document.getElementById('hexaId').value;
     const title = document.getElementById('titleInput').value || 'Untitled';
-
     const payload = { type, id, title };
     if (type.toLowerCase() === 'tv') {
       const season = document.getElementById('seasonSelect').value;
